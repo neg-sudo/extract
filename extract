@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+import os
+import sys
+import shutil
+import argparse
+import subprocess
+from pathlib import Path
+
+class Extractor:
+    def __init__(self, verbose=False, list_only=False, force=False, to_dir=None):
+        self.verbose = verbose
+        self.list_only = list_only
+        self.force = force
+        self.to_dir = to_dir
+    
+    def log(self, msg):
+        if self.verbose:
+            print(f"[extract] {msg}", file=sys.stderr)
+    
+    def detect_by_magic(self, filepath):
+        """Detect by file magic bytes"""
+        try:
+            with open(filepath, 'rb') as f:
+                header = f.read(32)
+            if header.startswith(b'\x1f\x8b'): return 'gz'
+            if header.startswith(b'BZh'): return 'bz2'
+            if header.startswith(b'\xfd7zXZ\x00'): return 'xz'
+            if header.startswith(b'\x28\xb5\x2f\xfd'): return 'zstd'
+            if header.startswith(b'PK\x03\x04'): return 'zip'
+            if header.startswith(b'PK\x05\x06'): return 'zip'
+            if header.startswith(b'PK\x07\x08'): return 'zip'
+            if header.startswith(b'Rar!\x1a\x07\x00'): return 'rar'
+            if header.startswith(b'Rar!\x1a\x07\x01\x00'): return 'rar'
+            if header.startswith(b'7z\xbc\xaf\x27\x1c'): return '7z'
+            if header.startswith(b'\x89LZ4'): return 'lz4'
+            if header.startswith(b'\x04\x22\x4d\x18'): return 'lz4'  # newer format
+            if header.startswith(b'\x1f\x9d'): return 'compress'
+            if header.startswith(b'\x1f\xa0'): return 'compress'
+            if header[:6] == b'<!DOCT' or header[:5] == b'<html': return None  # HTML
+        except:
+            pass
+        return None
+    
+    def detect_type(self, filepath):
+        """Detect archive type by extension and magic bytes"""
+        ext = filepath.lower()
+        # Check by extension first
+        if ext.endswith(('.tar.gz', '.tgz')): return 'tar.gz'
+        if ext.endswith(('.tar.bz2', '.tbz2', '.tbz')): return 'tar.bz2'
+        if ext.endswith(('.tar.xz', '.txz')): return 'tar.xz'
+        if ext.endswith(('.tar.zst', '.tzst')): return 'tar.zst'
+        if ext.endswith(('.tar.lz', '.tar.lzma')): return 'tar.lzma'
+        if ext.endswith('.tar'): return 'tar'
+        if ext.endswith('.zip'): return 'zip'
+        if ext.endswith(('.7z', '.7zip')): return '7z'
+        if ext.endswith(('.rar', '.r00')): return 'rar'
+        if ext.endswith(('.bz2')): 
+            if ext.endswith('.tar.bz2'): return 'tar.bz2'
+            return 'bz2'
+        if ext.endswith(('.gz')): 
+            if ext.endswith('.tar.gz'): return 'tar.gz'
+            return 'gz'
+        if ext.endswith(('.xz')): 
+            if ext.endswith('.tar.xz'): return 'tar.xz'
+            return 'xz'
+        if ext.endswith(('.zst')): 
+            if ext.endswith('.tar.zst'): return 'tar.zst'
+            return 'zst'
+        if ext.endswith('.lzma'): return 'lzma'
+        if ext.endswith(('.deb')): return 'deb'
+        if ext.endswith(('.rpm')): return 'rpm'
+        if ext.endswith(('.iso')): return 'iso'
+        if ext.endswith(('.cab')): return 'cab'
+        if ext.endswith(('.arj')): return 'arj'
+        if ext.endswith(('.ace')): return 'ace'
+        if ext.endswith(('.z')): return 'compress'
+        if ext.endswith(('.cpio')): return 'cpio'
+        if ext.endswith(('.jar')): return 'zip'  # jar is zip
+        if ext.endswith(('.war')): return 'zip'
+        if ext.endswith(('.apk')): return 'zip'
+        if ext.endswith(('.whl')): return 'zip'
+        if ext.endswith(('.xpi')): return 'zip'
+        if ext.endswith(('.crx')): return 'zip'
+        if ext.endswith(('.epub')): return 'zip'
+        if ext.endswith(('.docx', '.xlsx', '.pptx')): return 'zip'
+        if ext.endswith(('.odt', '.ods', '.odp')): return 'zip'
+        if ext.endswith(('.vsix')): return 'zip'
+        if ext.endswith(('.br')): return 'brotli'
+        if ext.endswith(('.zstd')): return 'zstd'
+        if ext.endswith(('.lz4')): return 'lz4'
+        if ext.endswith(('.sz')): return 'snappy'
+        # Try to detect by magic bytes as fallback
+        return self.detect_by_magic(filepath)
+    
+    def get_extract_dir(self, filepath):
+        """Determine extraction directory - smart about avoiding extra nesting"""
+        path = Path(filepath)
+        name = path.name
+        
+        # Remove common archive extensions to guess folder name
+        base_name = name
+        for ext in ['.tar.gz', '.tar.bz2', '.tar.xz', '.tar.zst', '.tar.lzma', 
+                   '.tgz', '.tbz2', '.tbz', '.txz', '.tzst']:
+            if base_name.lower().endswith(ext):
+                base_name = base_name[:-len(ext)]
+                break
+        else:
+            # Try single extensions
+            for ext in ['.tar', '.zip', '.7z', '.rar', '.bz2', '.gz', '.xz', 
+                       '.zst', '.lzma', '.br', '.zstd', '.lz4']:
+                if base_name.lower().endswith(ext):
+                    base_name = base_name[:-len(ext)]
+                    break
+        
+        if self.to_dir:
+            return Path(self.to_dir)
+        # Default: extract to directory named after archive (without extension)
+        return path.parent / base_name
+    
+    def smart_extract(self, filepath):
+        """Smart extraction that avoids unnecessary nesting"""
+        filepath = os.path.abspath(filepath)
+        if not os.path.exists(filepath):
+            print(f"Error: {filepath} not found", file=sys.stderr)
+            return False
+        
+        arch_type = self.detect_type(filepath)
+        if not arch_type:
+            print(f"Error: Unknown archive format for {filepath}", file=sys.stderr)
+            return False
+        
+        extract_dir = self.get_extract_dir(filepath)
+        path = Path(filepath)
+        
+        self.log(f"Detected: {arch_type}")
+        self.log(f"Extracting to: {extract_dir}")
+        
+        if self.list_only:
+            return self.list_archive(filepath, arch_type)
+        
+        # Create extraction directory
+        extract_dir.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            success = self._extract(filepath, arch_type, extract_dir)
+            if success:
+                # Check if everything was extracted into a single subdirectory and move up if cleaner
+                self._flatten_if_needed(extract_dir)
+                print(f"✓ Extracted to {extract_dir}")
+            return success
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return False
+    
+    def _extract(self, filepath, arch_type, extract_dir):
+        if arch_type == 'tar':
+            cmd = ['tar', 'xf', filepath, '-C', str(extract_dir)]
+        elif arch_type == 'tar.gz':
+            cmd = ['tar', 'xzf', filepath, '-C', str(extract_dir)]
+        elif arch_type == 'tar.bz2':
+            cmd = ['tar', 'xjf', filepath, '-C', str(extract_dir)]
+        elif arch_type == 'tar.xz':
+            cmd = ['tar', 'xJf', filepath, '-C', str(extract_dir)]
+        elif arch_type == 'tar.zst':
+            cmd = ['tar', '--zstd', '-xf', filepath, '-C', str(extract_dir)]
+        elif arch_type == 'tar.lzma':
+            cmd = ['tar', '--lzma', '-xf', filepath, '-C', str(extract_dir)]
+        elif arch_type == 'zip':
+            cmd = ['unzip', '-o', '-q', filepath, '-d', str(extract_dir)]
+        elif arch_type == '7z':
+            cmd = ['7z', 'x', f'-o{extract_dir}', filepath]
+        elif arch_type == 'rar':
+            cmd = ['unrar', 'x', '-o+', filepath, str(extract_dir) + '/']
+        elif arch_type == 'bz2':
+            # Single file bz2
+            out_file = extract_dir / Path(filepath).stem
+            cmd = ['bunzip2', '-c', filepath]
+            if self.verbose:
+                subprocess.run(cmd)
+            else:
+                with open(out_file, 'wb') as f:
+                    subprocess.run(cmd, stdout=f)
+            return True
+        elif arch_type == 'gz':
+            out_file = extract_dir / Path(filepath).stem
+            cmd = ['gunzip', '-c', filepath]
+            with open(out_file, 'wb') as f:
+                subprocess.run(cmd, stdout=f)
+            return True
+        elif arch_type == 'xz':
+            out_file = extract_dir / Path(filepath).stem
+            cmd = ['xz', '-d', '-c', filepath]
+            with open(out_file, 'wb') as f:
+                subprocess.run(cmd, stdout=f)
+            return True
+        elif arch_type == 'zst':
+            out_file = extract_dir / Path(filepath).stem
+            cmd = ['zstd', '-d', '-c', filepath]
+            with open(out_file, 'wb') as f:
+                subprocess.run(cmd, stdout=f)
+            return True
+        elif arch_type == 'br':
+            out_file = extract_dir / Path(filepath).stem
+            cmd = ['brotli', '-d', '-c', filepath]
+            with open(out_file, 'wb') as f:
+                subprocess.run(cmd, stdout=f)
+            return True
+        elif arch_type == 'deb':
+            cmd = ['dpkg-deb', '-x', filepath, str(extract_dir)]
+        elif arch_type == 'rpm':
+            cmd = ['rpm2cpio', filepath]
+            # Complex piping
+            p1 = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+            p2 = subprocess.Popen(['cpio', '-idmv'], stdin=p1.stdout, cwd=str(extract_dir))
+            p1.stdout.close()
+            p2.communicate()
+            return True
+        elif arch_type == 'cpio':
+            cmd = ['cpio', '-idmv', '-I', filepath]
+            subprocess.run(cmd, cwd=str(extract_dir))
+            return True
+        else:
+            print(f"Unsupported format: {arch_type}", file=sys.stderr)
+            return False
+        
+        self.log(f"Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd)
+        return result.returncode == 0
+    
+    def list_archive(self, filepath, arch_type):
+        if arch_type in ['tar', 'tar.gz', 'tar.bz2', 'tar.xz', 'tar.zst', 'tar.lzma']:
+            if arch_type == 'tar.gz': cmd = ['tar', 'tzf', filepath]
+            elif arch_type == 'tar.bz2': cmd = ['tar', 'tjf', filepath]
+            elif arch_type == 'tar.xz': cmd = ['tar', 'tJf', filepath]
+            elif arch_type == 'tar.zst': cmd = ['tar', '--zstd', '-tf', filepath]
+            else: cmd = ['tar', 'tf', filepath]
+        elif arch_type == 'zip':
+            cmd = ['unzip', '-l', filepath]
+        elif arch_type == '7z':
+            cmd = ['7z', 'l', filepath]
+        elif arch_type == 'rar':
+            cmd = ['unrar', 'l', filepath]
+        else:
+            print("Cannot list this format", file=sys.stderr)
+            return False
+        subprocess.run(cmd)
+        return True
+    
+    def _flatten_if_needed(self, extract_dir):
+        """If only one item in dir and it's a dir, move contents up"""
+        try:
+            items = list(extract_dir.iterdir())
+            # Filter out hidden files like __MACOSX
+            items = [i for i in items if not i.name.startswith('.') or i.name == '.']
+            if len(items) == 1 and items[0].is_dir():
+                subdir = items[0]
+                # Move all contents up
+                for item in subdir.iterdir():
+                    dest = extract_dir / item.name
+                    if dest.exists() and not self.force:
+                        continue  # Don't overwrite
+                    shutil.move(str(item), str(dest))
+                # Remove empty subdir
+                try:
+                    subdir.rmdir()
+                    self.log(f"Flattened single subdirectory")
+                except:
+                    pass
+        except Exception as e:
+            self.log(f"Flatten check failed: {e}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Extract archives of any format - the best universal extractor',
+        epilog='Supports: tar, tar.gz/tgz, tar.bz2/tbz2, tar.xz/txz, tar.zst, zip, 7z, rar, bz2, gz, xz, zst, deb, rpm, and more'
+    )
+    parser.add_argument('files', nargs='+', help='Archive files to extract')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('-l', '--list', action='store_true', help='List contents without extracting')
+    parser.add_argument('-f', '--force', action='store_true', help='Overwrite existing files')
+    parser.add_argument('-d', '--directory', help='Extract to specific directory')
+    parser.add_argument('-C', dest='dir', help='Change to directory (like tar -C)')
+    
+    args = parser.parse_args()
+    
+    extractor = Extractor(verbose=args.verbose, list_only=args.list, 
+                         force=args.force, to_dir=args.dir or args.directory)
+    
+    all_ok = True
+    for f in args.files:
+        if not extractor.smart_extract(f):
+            all_ok = False
+    
+    sys.exit(0 if all_ok else 1)
+
+if __name__ == '__main__':
+    main()

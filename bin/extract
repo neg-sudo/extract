@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# extract - Universal archive extractor for all platforms
+# Copyright (c) 2026 extract contributors
+# Licensed under MIT License
+
+# Cross-platform detection
+detect_os() {
+    case "$(uname -s)" in
+        Darwin*)    echo "macos" ;;
+        Linux*)     
+            if grep -q Microsoft /proc/version 2>/dev/null; then
+                echo "wsl"
+            else
+                echo "linux"
+            fi
+            ;;
+        CYGWIN*|MINGW*|MSYS*) echo "windows" ;;
+        *)          echo "unknown" ;;
+    esac
+}
+
+OS=$(detect_os)
+
+# Use Python version for cross-platform compatibility if available
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 "$(dirname "$0")/../lib/extract.py" "$@"
+elif command -v python >/dev/null 2>&1; then
+    exec python "$(dirname "$0")/../lib/extract.py" "$@"
+fi
+
+# Fallback to pure bash implementation
+# ... (minimal fallback)
