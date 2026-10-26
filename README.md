@@ -137,19 +137,19 @@ extract --completion bash > ~/.bash_completion.d/extract
 ### Quick Install (Linux/macOS/WSL)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/neg/extract/main/scripts/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/neg-sudo/extract/main/scripts/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/neg/extract/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/neg-sudo/extract/main/install.ps1 | iex
 ```
 
 ### Manual Install
 
 ```bash
-git clone https://github.com/neg/extract.git
+git clone https://github.com/neg-sudo/extract.git
 cd extract
 ./scripts/install.sh
 ```
