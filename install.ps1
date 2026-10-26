@@ -6,7 +6,7 @@ param(
     [string]$BinDir = "$env:USERPROFILE\.local\bin"
 )
 
-$Version = "1.1.0"
+$Version = "2.0.0"
 
 Write-Host "extract v$Version installer" -ForegroundColor Cyan
 Write-Host "Platform: Windows" -ForegroundColor Gray

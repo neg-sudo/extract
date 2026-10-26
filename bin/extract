@@ -3,30 +3,35 @@
 # Copyright (c) 2026 extract contributors
 # Licensed under MIT License
 
-# Cross-platform detection
-detect_os() {
-    case "$(uname -s)" in
-        Darwin*)    echo "macos" ;;
-        Linux*)     
-            if grep -q Microsoft /proc/version 2>/dev/null; then
-                echo "wsl"
-            else
-                echo "linux"
-            fi
-            ;;
-        CYGWIN*|MINGW*|MSYS*) echo "windows" ;;
-        *)          echo "unknown" ;;
+set -e
+
+# Resolve symlinks portably (Linux, macOS, BSD).
+SELF="$0"
+while [ -L "$SELF" ]; do
+    LINK="$(readlink "$SELF")"
+    case "$LINK" in
+        /*) SELF="$LINK" ;;
+        *)  SELF="$(dirname "$SELF")/$LINK" ;;
     esac
-}
+done
+DIR="$(cd "$(dirname "$SELF")" && pwd)"
 
-OS=$(detect_os)
-
-# Use Python version for cross-platform compatibility if available
-if command -v python3 >/dev/null 2>&1; then
-    exec python3 "$(dirname "$0")/../lib/extract.py" "$@"
-elif command -v python >/dev/null 2>&1; then
-    exec python "$(dirname "$0")/../lib/extract.py" "$@"
+# Locate the Python implementation.
+LIB="${EXTRACT_LIB:-$DIR/../lib/extract.py}"
+[ -f "$LIB" ] || LIB="$HOME/.extract/lib/extract.py"
+[ -f "$LIB" ] || LIB="$DIR/lib/extract.py"
+if [ ! -f "$LIB" ]; then
+    echo "extract: could not locate extract.py (looked next to $DIR and in ~/.extract/lib)" >&2
+    exit 1
 fi
 
-# Fallback to pure bash implementation
-# ... (minimal fallback)
+# Pick a Python 3 interpreter.
+for PY in "${EXTRACT_PYTHON:-}" python3 python py; do
+    [ -n "$PY" ] || continue
+    if command -v "$PY" >/dev/null 2>&1; then
+        exec "$PY" "$LIB" "$@"
+    fi
+done
+
+echo "extract: Python 3 is required but was not found" >&2
+exit 1
