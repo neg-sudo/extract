@@ -44,7 +44,7 @@ if ((Test-Path "$RepoRoot\bin\extract") -and (Test-Path "$RepoRoot\lib\extract.p
     Copy-Item "$RepoRoot\lib\extract.py" "$InstallDir\lib\extract.py" -Force
 } else {
     Write-Host "ℹ Downloading from GitHub..." -ForegroundColor Blue
-    $baseUrl = "https://github.com/neg/extract/raw/main"
+    $baseUrl = "https://github.com/neg-sudo/extract/raw/main"
     Invoke-WebRequest -Uri "$baseUrl/bin/extract" -OutFile "$InstallDir\bin\extract" -UseBasicParsing
     Invoke-WebRequest -Uri "$baseUrl/lib/extract.py" -OutFile "$InstallDir\lib\extract.py" -UseBasicParsing
 }
