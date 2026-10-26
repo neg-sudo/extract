@@ -1,0 +1,6 @@
+*.pem
+*.key
+new.txt*
+.extract/
+__pycache__/
+*.pyc
