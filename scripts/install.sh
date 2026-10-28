@@ -6,7 +6,7 @@ set -e
 
 OWNER="neg-sudo"
 REPO="extract"
-VERSION="2.0.0"
+VERSION="3.0.0"
 BRANCH="main"
 RAW_BASE="https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}"
 
@@ -86,7 +86,7 @@ LOCAL_ROOT=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     CANDIDATE="$(dirname "$SCRIPT_DIR")"
-    if [ -f "$CANDIDATE/bin/extract" ] && [ -f "$CANDIDATE/lib/extract.py" ]; then
+    if [ -f "$CANDIDATE/bin/extract" ] && [ -f "$CANDIDATE/lib/extract.py" ] && [ -f "$CANDIDATE/lib/safeops.py" ]; then
         LOCAL_ROOT="$CANDIDATE"
     fi
 fi
@@ -95,12 +95,15 @@ if [ -n "$LOCAL_ROOT" ]; then
     info "Installing from local files..."
     cp "$LOCAL_ROOT/bin/extract" "$INSTALL_DIR/bin/extract"
     cp "$LOCAL_ROOT/lib/extract.py" "$INSTALL_DIR/lib/extract.py"
+    cp "$LOCAL_ROOT/lib/safeops.py" "$INSTALL_DIR/lib/safeops.py"
 else
     info "Downloading from GitHub..."
     download "$RAW_BASE/bin/extract" "$INSTALL_DIR/bin/extract" \
         || error "Failed to download $RAW_BASE/bin/extract"
     download "$RAW_BASE/lib/extract.py" "$INSTALL_DIR/lib/extract.py" \
         || error "Failed to download $RAW_BASE/lib/extract.py"
+    download "$RAW_BASE/lib/safeops.py" "$INSTALL_DIR/lib/safeops.py" \
+        || error "Failed to download $RAW_BASE/lib/safeops.py"
 fi
 
 chmod +x "$INSTALL_DIR/bin/extract"
@@ -152,16 +155,16 @@ if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     fi
 fi
 
-# Suggest missing tools
+# Verify the security core is present.
+if ! "$INSTALL_DIR/bin/extract" --verify-install >/dev/null 2>&1; then
+    error "Installation verification failed"
+fi
+success "Verified extract $( "$INSTALL_DIR/bin/extract" --version 2>/dev/null | tail -1 )"
+
+# Suggest optional tools. Native formats need none.
 echo ""
-info "Checking for common archive tools..."
-for tool in unzip tar gzip bzip2 xz; do
-    if command -v "$tool" >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} $tool"
-    else
-        echo -e "  ${YELLOW}○${NC} $tool (recommended)"
-    fi
-done
+info "Native formats: ZIP, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, BZ2, XZ (no tools needed)"
+info "Checking for optional archive tools..."
 for tool in 7z unrar zstd; do
     if command -v "$tool" >/dev/null 2>&1; then
         echo -e "  ${GREEN}✓${NC} $tool"

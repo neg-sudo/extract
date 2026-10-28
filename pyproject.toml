@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extract-cli"
+version = "3.0.0"
+description = "The secure, intelligent, cross-platform archive utility"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "extract contributors" }]
+keywords = ["archive", "extract", "zip", "tar", "security", "cli", "tui"]
+classifiers = [
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Archiving",
+  "Topic :: Security",
+]
+dependencies = []
+
+[project.scripts]
+extract = "extract:main"
+x = "extract:main"
+
+[project.urls]
+Homepage = "https://github.com/neg-sudo/extract"
+Documentation = "https://github.com/neg-sudo/extract/tree/main/docs"
+Issues = "https://github.com/neg-sudo/extract/issues"
+Security = "https://github.com/neg-sudo/extract/security"
+
+[tool.setuptools]
+py-modules = ["extract", "safeops"]
+package-dir = { "" = "lib" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]

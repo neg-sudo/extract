@@ -1,232 +1,261 @@
 # extract
 
-A universal, intelligent, and secure archive extractor for Linux, macOS, and Windows. Everything in one tool.
+**The secure, intelligent, cross-platform archive utility.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![tests](https://github.com/neg-sudo/extract/actions/workflows/test.yml/badge.svg)](https://github.com/neg-sudo/extract/actions/workflows/test.yml)
+[![security](https://github.com/neg-sudo/extract/actions/workflows/security.yml/badge.svg)](https://github.com/neg-sudo/extract/actions/workflows/security.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 
-## Features
-
-- **Universal Format Support** - Handles 50+ formats: tar, tar.gz/tgz, tar.bz2/tbz2, tar.xz/txz, tar.zst, zip, 7z, rar, bz2, gz, xz, zst, br, lz4, lzo, deb, rpm, cpio, ar, iso, cab, and more
-- **Archive-Aware (Zip/Jar/Docx)** - Works with zip-based formats like .jar, .war, .apk, .epub, .docx, .xlsx, .pptx, .odt, .vsix, .nupkg, etc.
-- **Smart Extraction** - Auto-detects format via extension and magic bytes. Flattens unnecessary nested directories automatically
-- **Zip-Slip Protection** - Secure by default, blocks path traversal attacks. Use `--insecure` to bypass
-- **Cross-Platform** - Works on Linux, macOS, Windows (WSL, Git Bash, PowerShell)
-- **Fast & Parallel** - Extract multiple archives concurrently with `--parallel` and `-j/--jobs`
-- **Password Support** - Handles encrypted archives with interactive prompts, password flags, and secure keyring storage
-
-## Usage
+`extract` unpacks archives without letting them unpack you. One command, native
+support for the formats that matter, strict path and resource controls,
+machine-readable output, and an interactive browser.
 
 ```bash
-# Basic extraction
-extract file.zip
-x archive.tar.gz
-
-# Extract to specific directory
-extract -d ./output file.zip
-extract -C ./dir file.tar.gz
-
-# List contents without extracting
-extract -l archive.zip
-
-# View a file inside archive
-extract --cat README.md archive.zip
-x --view config.json file.tar.gz
-
-# Test archive integrity
-extract -t archive.zip
-
-# Show archive info
-extract -i archive.7z
-
-# Dry run
-extract -n file.rar
-
-# Extract from URL
-extract https://example.com/file.tar.gz
-
-# Multiple files in parallel
-extract file1.zip file2.tar.gz file3.7z --parallel
-
-# Open after extraction
-extract -o file.zip
-
-# Recursive extraction of nested archives
-extract -r bundle.tar.gz
-
-# Watch directory for new archives
-extract --watch ~/Downloads
-
-# Pack/create archives
-extract --pack ./folder archive.tar.gz
-extract -c ./src backup.zip
-
-# Restore last extraction
-extract --last
-extract --last --open
-
-# Checksum verification
-extract --sha256 abc123... file.zip
-extract file.zip  # also checks for .sha256 sidecar
-
-# TUI browser
-extract --tui archive.zip
-
-# Diff archives
-extract --diff old.zip new.zip
+extract backup.zip
+extract https://example.com/release.tar.gz
+extract --list photos.cbz
+extract --search '*.json' project.zip
+extract --grep TODO project.zip
+extract --tui source.zip
+extract --sandbox untrusted.zip
 ```
 
-## Advanced Options
+## Why this one?
 
-| Option | Description |
-| --- | --- |
-| `-v, --verbose` | Show detailed extraction output |
-| `-f, --force` | Overwrite existing files/directories |
-| `-r, --recursive` | Recursively extract nested archives |
-| `-n, --dry-run` | Preview extraction without doing it |
-| `-t, --test` | Test archive integrity |
-| `-i, --info` | Display archive metadata |
-| `--cat FILE` / `--view FILE` | View file contents without extracting |
-| `-o, --open` | Open extracted folder in file manager |
-| `--json` | Machine-readable JSON output |
-| `-p, --password [PASS]` | Password for encrypted archives (`-` for prompt) |
-| `--keep-junk` | Keep `__MACOSX`, `.DS_Store`, etc. |
-| `--no-flatten` | Don't flatten single-directory archives |
-| `--notify` | Send desktop notifications |
-| `--copy-path` | Copy extracted path to clipboard |
-| `--insecure` | Disable zip-slip protection (not recommended) |
-| `--parallel` / `-j N` | Extract multiple archives in parallel |
-| `--watch DIR` | Auto-extract new archives in directory |
-| `--sha256 HASH` | Verify checksum before extracting |
-| `--last` | Show/re-run last extraction |
-| `--history` | View extraction history |
-| `--clear-keys` | Clear saved passwords from keyring |
-| `--tui` | Launch TUI browser |
-| `--diff A B` | Compare two archives |
-| `-c, --create` / `--pack` | Create/pack archives |
-| `--sandbox` | Enable sandboxed extraction (experimental) |
+Most extractors compete on format count. `extract` competes on safety,
+predictability, and automation:
 
-## Shell Integration
+* **Hostile archives are the default assumption** — traversal, symlink escapes,
+  unicode tricks, bombs, and overwrite attacks are handled before anything is
+  written.
+* **Native core** — ZIP, TAR, TAR.GZ/BZ2/XZ, GZ, BZ2, and XZ need no external
+  programs. Uncommon formats use optional helpers, confined to a temp directory.
+* **Predictable automation** — stable exit codes and structured `--json`.
+* **Intelligence** — magic bytes beat a misleading extension; reports sizes,
+  ratio, encryption, and counts.
+* **Recursive hygiene** — nested archives have depth, count, size, and ratio
+  limits.
 
-### extract-and-cd (`xcd`)
-
-Add to your shell rc for one-command extract and cd:
+## Install
 
 ```bash
-xcd() {
-    local out
-    out=$(extract "$1" 2>&1 | tail -1)
-    if [[ "$out" == *"Extracted to"* ]]; then
-        local dir=$(echo "$out" | grep -oP 'Extracted to \K.*' | sed 's/ (.*//')
-        [ -d "$dir" ] && cd "$dir"
-    else
-        echo "$out"
-    fi
-}
+curl -fsSL https://raw.githubusercontent.com/neg-sudo/extract/main/scripts/install.sh | bash
 ```
 
-### Shell Completions
+Installs to `~/.extract` and links `extract` plus the `x` alias into
+`~/.local/bin`. Source downloads are atomic, so a failed request cannot damage
+a working installation.
 
-```bash
-extract --install-completions
-# or
-extract --completion bash > ~/.bash_completion.d/extract
-```
-
-## Installation
-
-### Quick Install (Linux/macOS/WSL)
-
-```bash
-curl -sSL https://raw.githubusercontent.com/neg-sudo/extract/main/scripts/install.sh | bash
-```
-
-### Windows (PowerShell)
+Windows:
 
 ```powershell
 irm https://raw.githubusercontent.com/neg-sudo/extract/main/install.ps1 | iex
 ```
 
-### Manual Install
+Prebuilt binaries for Linux, macOS, and Windows (AMD64 and ARM64) are published
+with every tagged release, together with `SHA256SUMS` and optional GPG/Sigstore
+signatures. A universal `extract.pyz` is also produced.
+
+```bash
+sha256sum -c SHA256SUMS
+gpg --verify SHA256SUMS.asc SHA256SUMS
+```
+
+From source:
 
 ```bash
 git clone https://github.com/neg-sudo/extract.git
 cd extract
-./scripts/install.sh
+./bin/extract --version
+python3 -m unittest discover -s tests -v
 ```
 
-Or install directly:
-```bash
-cp bin/extract ~/.local/bin/
-cp lib/extract.py ~/.extract/lib/
-chmod +x ~/.local/bin/extract
-```
-
-### Recommended Dependencies
-
-| Platform | Tools |
-| --- | --- |
-| Linux | `unzip`, `tar`, `gzip`, `bzip2`, `xz-utils` (usually pre-installed). Optional: `p7zip-full`, `unrar`, `zstd`, `brotli`, `lz4` |
-| macOS | Pre-installed most. Optional: `brew install p7zip unrar zstd brotli lz4` |
-| Windows/WSL | Works great in WSL2. Git Bash needs external tools or WSL utilities |
-
-## Configuration
-
-Config file at `~/.config/extract/config.toml`:
-
-```toml
-default_dir = "~/Archives"
-flatten = true
-keep_junk = false
-colors = true
-delete_after = false
-max_size_gb = 10
-zip_slip_protection = true
-notify = false
-copy_path = false
-jobs = 4
-```
-
-Project-level config `.extract.toml` in repo root is also supported (merged with precedence).
+Python 3.9+ is required for the source install. There are no third-party Python
+dependencies.
 
 ## Security
 
-- **Zip-Slip Protection** - Enabled by default, validates all archive paths stay within extraction directory
-- **Size Limits** - Warns/prevents extraction of extremely large archives (configurable)
-- **Secure Password Storage** - Passwords stored with 600 permissions in `~/.local/share/extract/keys/`
-- **Sandboxing** - Experimental sandboxed extraction support
-- **Checksum Verification** - SHA256 verification for downloads and archives
+| Threat | Default behaviour |
+| ------ | ----------------- |
+| `../../evil`, absolute paths, drives, UNC | Abort, exit `3`, before writing |
+| Symlinks, hardlinks, junctions | Skipped |
+| Link escaping the output | Abort |
+| Windows reserved names (`CON`, `NUL`, `COM1`...) | Abort |
+| Alternate data streams (`file:stream`) | Abort |
+| Trailing dots/spaces | Abort |
+| Unicode bidi overrides/isolates | Abort |
+| Duplicate/case/NFC-colliding entries | Abort |
+| Overwriting existing files | Abort unless `--force` |
+| Decompression bombs | Abort at limits, checked twice |
+| Devices/FIFOs/sockets | Never created |
+| `setuid`/`setgid`/sticky bits | Always stripped |
+| Executable extraction | `--no-exec` strips exec bits |
 
-## Plugin System
+Safety is layered:
 
-Extend with custom format support. Drop plugins in `~/.config/extract/plugins/`:
+1. **Validate before writing.** Every member name and type is checked before the
+   first byte lands on disk.
+2. **Safe writes.** `O_EXCL | O_NOFOLLOW` where available; no directory is
+   traversed through a symlink.
+3. **Streaming limits.** Bytes are counted while decompressing, so a lying
+   header cannot exceed a limit.
+4. **Confined external tools.** 7Z/RAR/ZST helpers run in a private temp
+   directory under a file-size rlimit; their output is re-validated and imported
+   through the safe path. Use `--sandbox` to forbid helpers entirely.
 
-```python
-# ~/.config/extract/plugins/myformat.py
-def can_handle(filepath):
-    return filepath.endswith('.myext')
+Read the full [threat model](SECURITY.md).
 
-def extract(filepath, extract_dir):
-    # Custom extraction logic
-    return True
+### Limits
 
-def list_contents(filepath):
-    return []
+```bash
+extract untrusted.zip \
+  --max-size 10G \
+  --max-files 100000 \
+  --max-depth 10 \
+  --max-ratio 100
 ```
 
-## Data Locations
+| Flag | Meaning | Default |
+| ---- | ------- | ------- |
+| `--max-size` | Total uncompressed bytes | 100 GiB |
+| `--max-file-size` | Largest single entry | 50 GiB |
+| `--max-files` | Entry count | 1,000,000 |
+| `--max-ratio` | Uncompressed ÷ compressed | 1000 (above 64 MiB) |
+| `--max-depth` | Nested archive depth | 10 |
 
-| Path | Purpose |
-| --- | --- |
-| `~/.extract/` | Installation directory |
-| `~/.local/bin/extract`, `x` | Executables/aliases |
-| `~/.config/extract/` | Configuration & plugins |
-| `~/.local/state/extract/history.json` | Extraction history |
-| `~/.local/share/extract/keys/` | Encrypted password keyring |
+Sizes accept `K`, `M`, `G`, `T`, `P`, `iB`, and decimals: `10G`, `1.5GiB`.
+
+## Native formats
+
+No external tools required:
+
+| Format | Examples |
+| ------ | -------- |
+| ZIP | `.zip .cbz .jar .war .apk .epub .docx .xlsx .pptx .whl .nupkg` |
+| TAR | `.tar` |
+| TAR + GZIP | `.tar.gz .tgz` |
+| TAR + BZIP2 | `.tar.bz2 .tbz2 .tbz` |
+| TAR + XZ | `.tar.xz .txz` |
+| GZIP / BZIP2 / XZ | `.gz .bz2 .xz` |
+
+Optional helpers for 7Z, RAR, ZST, Brotli, LZ4, LZO, DEB, RPM, CPIO, AR, ISO,
+and CAB. `extract` tells you which tool is missing.
+
+## Usage
+
+```bash
+extract archive.zip                 # -> ./archive/
+extract -C /tmp/out archive.zip     # choose output
+extract -f archive.zip              # allow existing dir / overwrite
+
+extract --list archive.zip          # inspect
+extract --info archive.zip
+extract --check archive.zip         # integrity test
+extract --dry-run archive.zip
+extract --cat archive.zip file.txt  # write one member to stdout
+
+extract --search '*.json' archive.zip
+extract --grep password archive.zip
+extract --include 'src/*.py' archive.zip
+
+extract -r bundle.zip --max-depth 3 # recursive
+extract --tui archive.zip           # interactive browser
+extract --pack src out.tar.gz       # create an archive
+```
+
+### Exit codes
+
+| Code | Meaning |
+| ---- | ------- |
+| 0 | Success |
+| 1 | Extraction or I/O error |
+| 2 | Invalid or corrupted archive |
+| 3 | Security violation or limit exceeded |
+| 4 | Checksum mismatch |
+| 5 | Password required or wrong |
+| 6 | Unsupported format |
+
+```bash
+extract --check release.zip
+case $? in
+  0) echo ok ;;
+  2) echo corrupted ;;
+  3) echo "unsafe archive" ;;
+esac
+```
+
+### JSON
+
+```bash
+extract --json -C out release.zip
+```
+
+```json
+{
+  "archive": "/abs/release.zip",
+  "bytes_written": 582193021,
+  "directories": 41,
+  "duration_ms": 812,
+  "exit_code": 0,
+  "files": 1842,
+  "format": "zip",
+  "output": "/abs/out",
+  "skipped": 0,
+  "status": "success",
+  "warnings": []
+}
+```
+
+### Passwords
+
+```bash
+extract -p archive.zip        # prompt
+extract -p 'secret' archive.zip
+extract --clear-keys
+```
+
+Passwords are never printed. The optional keyring stores them at mode `0600`
+and is not encrypted at rest.
+
+### TUI
+
+`extract --tui archive.zip` opens a curses browser with search, filtering,
+multi-select, and selective extraction. See [docs/tui.md](docs/tui.md).
+
+## Tests and CI
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 tests/fuzz_smoke.py --iterations 5000
+python3 scripts/benchmark.py --size-mb 10 --files 1000
+```
+
+The suite covers normal archives, empty and corrupted archives, truncation,
+traversal, absolute/drive/UNC paths, reserved names, ADS, unicode bidi, symlinks,
+hardlinks, special files, duplicate entries, setuid stripping, every limit,
+encryption, checksums, JSON, exit codes, selective extraction, and recursion
+depth. CI runs it on Linux, macOS, and Windows across Python 3.9, 3.12, and
+3.13, plus lint, Bandit, CodeQL, and scheduled fuzzing.
+
+## Documentation
+
+* [Docs index](docs/index.md)
+* [Installation](docs/installation.md)
+* [Getting started](docs/getting-started.md)
+* [Formats](docs/formats.md)
+* [Security](docs/security.md) and [SECURITY.md](SECURITY.md)
+* [Limits](docs/limits.md)
+* [CLI reference](docs/cli-reference.md)
+* [Scripting and CI](docs/scripting.md)
+* [Performance](docs/performance.md)
+
+## Contributing
+
+Security and correctness first. See [CONTRIBUTING.md](CONTRIBUTING.md) and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report vulnerabilities through
+[private advisories](https://github.com/neg-sudo/extract/security/advisories/new),
+not public issues.
 
 ## License
 
-[MIT License](LICENSE) - Copyright (c) 2026 extract contributors
-
-## Version
-
-**v2.0.0** - Universal archive toolkit with security, automation, and productivity features
+MIT. See [LICENSE](LICENSE).

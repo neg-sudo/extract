@@ -4,3 +4,12 @@ new.txt*
 .extract/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+*.pyz
+artifacts/
+release/
+SHA256SUMS

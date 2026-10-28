@@ -1,0 +1,34 @@
+site_name: extract
+site_description: The secure, intelligent, cross-platform archive utility
+repo_url: https://github.com/neg-sudo/extract
+edit_uri: edit/main/docs/
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: cyan
+  features:
+    - navigation.sections
+    - content.code.copy
+    - search.suggest
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Getting started: getting-started.md
+  - Formats: formats.md
+  - Security: security.md
+  - Limits: limits.md
+  - CLI reference: cli-reference.md
+  - TUI: tui.md
+  - Scripting and CI: scripting.md
+  - Configuration: configuration.md
+  - Performance: performance.md
+  - Troubleshooting: troubleshooting.md
+  - Development: development.md

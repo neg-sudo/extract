@@ -14,6 +14,7 @@ mkdir -p "$BIN_DIR"
 mkdir -p "$REPO_DIR"/{bin,lib}
 cp "$(dirname "$0")/bin/extract" "$REPO_DIR/bin/" 2>/dev/null || cp bin/extract "$REPO_DIR/bin/"
 cp "$(dirname "$0")/lib/extract.py" "$REPO_DIR/lib/" 2>/dev/null || cp lib/extract.py "$REPO_DIR/lib/"
+cp "$(dirname "$0")/lib/safeops.py" "$REPO_DIR/lib/" 2>/dev/null || cp lib/safeops.py "$REPO_DIR/lib/"
 chmod +x "$REPO_DIR/bin/extract"
 chmod +x "$REPO_DIR/lib/extract.py"
 

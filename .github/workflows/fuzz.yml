@@ -1,0 +1,32 @@
+name: fuzz
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: Number of iterations
+        required: false
+        default: "20000"
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Deterministic parser fuzz smoke
+        run: python tests/fuzz_smoke.py --iterations "${{ github.event.inputs.iterations || '20000' }}"
+      - name: Optional atheris fuzzing
+        continue-on-error: true
+        run: |
+          python -m pip install atheris
+          python fuzz/fuzz_paths.py -max_total_time=120
+          python fuzz/fuzz_zip.py -max_total_time=120

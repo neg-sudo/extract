@@ -6,7 +6,7 @@ param(
     [string]$BinDir = "$env:USERPROFILE\.local\bin"
 )
 
-$Version = "2.0.0"
+$Version = "3.0.0"
 
 Write-Host "extract v$Version installer" -ForegroundColor Cyan
 Write-Host "Platform: Windows" -ForegroundColor Gray
@@ -38,15 +38,17 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = $ScriptDir
 
-if ((Test-Path "$RepoRoot\bin\extract") -and (Test-Path "$RepoRoot\lib\extract.py")) {
+if ((Test-Path "$RepoRoot\bin\extract") -and (Test-Path "$RepoRoot\lib\extract.py") -and (Test-Path "$RepoRoot\lib\safeops.py")) {
     Write-Host "ℹ Installing from local files..." -ForegroundColor Blue
     Copy-Item "$RepoRoot\bin\extract" "$InstallDir\bin\extract" -Force
     Copy-Item "$RepoRoot\lib\extract.py" "$InstallDir\lib\extract.py" -Force
+    Copy-Item "$RepoRoot\lib\safeops.py" "$InstallDir\lib\safeops.py" -Force
 } else {
     Write-Host "ℹ Downloading from GitHub..." -ForegroundColor Blue
     $baseUrl = "https://github.com/neg-sudo/extract/raw/main"
     Invoke-WebRequest -Uri "$baseUrl/bin/extract" -OutFile "$InstallDir\bin\extract" -UseBasicParsing
     Invoke-WebRequest -Uri "$baseUrl/lib/extract.py" -OutFile "$InstallDir\lib\extract.py" -UseBasicParsing
+    Invoke-WebRequest -Uri "$baseUrl/lib/safeops.py" -OutFile "$InstallDir\lib\safeops.py" -UseBasicParsing
 }
 
 # Create wrapper scripts for Windows
@@ -104,12 +106,8 @@ if ($userPath -notlike "*$BinDir*") {
 }
 
 Write-Host ""
-Write-Host "Checking for archive tools..." -ForegroundColor Blue
-foreach ($tool in @("tar")) {
-    if (Get-Command $tool -ErrorAction SilentlyContinue) {
-        Write-Host "  ✓ $tool" -ForegroundColor Green
-    }
-}
+Write-Host "Native formats: ZIP, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, BZ2, XZ (no tools needed)" -ForegroundColor Green
+Write-Host "Checking for optional archive tools..." -ForegroundColor Blue
 if (Get-Command "7z" -ErrorAction SilentlyContinue) {
     Write-Host "  ✓ 7z" -ForegroundColor Green
 } else {

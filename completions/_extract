@@ -1,0 +1,13 @@
+#compdef extract x
+_extract() {
+    local -a opts
+    opts=(-v --verbose -l --list -f --force -d --directory -C -n --dry-run -t --test --check -i --info -r --recursive -p --password --cat --view -o --open --json --keep-junk --no-flatten --notify --insecure -j --jobs --parallel --tui -c --create --pack -q --quiet --no-color --sha256 --verify --copy-path --max-size --max-file-size --max-files --max-ratio --max-depth --include --search --grep --strict --no-exec --allow-symlinks --preserve-perms --sandbox --delete-nested --on-error --version --help)
+    _arguments "*:files:_files -g '*.(tar|tgz|tar.gz|tbz2|tar.bz2|txz|tar.xz|tzst|tar.zst|zip|7z|rar|bz2|gz|xz|zst|br|lz4|deb|rpm|iso|jar|war|apk|epub|docx|xlsx|pptx|dmg)'" \
+        '1: :->files' '*:: :->args'
+    case $state in
+        files) _files -g '*.(tar|tgz|tar.gz|zip|7z|rar|gz|xz|bz2|zst)' ;;
+        args) _describe 'option' opts ;;
+    esac
+}
+compdef _extract extract x
+

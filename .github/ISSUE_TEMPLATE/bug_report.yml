@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a correctness, security, or compatibility problem
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make extract safer. **Do not attach live malware.**
+        For security vulnerabilities use the private process in SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: extract version
+      description: Output of `extract --version`
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: Ubuntu 24.04, macOS 14, Windows 11, WSL2...
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include exit code and `--json` output if possible.
+    validations:
+      required: true
+  - type: dropdown
+    id: security
+    attributes:
+      label: Does this affect path safety or limits?
+      options: ["No", "Yes", "Not sure"]
