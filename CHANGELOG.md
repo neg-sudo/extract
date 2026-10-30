@@ -68,6 +68,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Windows/legacy consoles no longer crash when printing status symbols; output
+  is reconfigured to UTF-8 with replacement on unsupported code pages.
 - `Colors.disable()` no longer replaces itself with a string.
 - Flattening no longer moves symlinks in a way that could change their target.
 - Truncated/corrupted archives now exit with code `2` instead of a traceback or

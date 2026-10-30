@@ -25,8 +25,8 @@ def run(args, cwd=None, home=None, timeout=120, input_text=None, extra_env=None)
     return subprocess.run(
         [sys.executable, str(EXTRACT)] + [str(a) for a in args],
         cwd=str(cwd) if cwd else None, env=env, timeout=timeout,
-        input=input_text, text=True, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
+        input=input_text, encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def make_zip(path, entries, compression=zipfile.ZIP_DEFLATED):

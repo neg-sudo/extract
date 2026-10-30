@@ -36,6 +36,17 @@ except ImportError:  # pragma: no cover - installed layout fallback
 VERSION = "3.0.0"
 
 
+def configure_stdio():
+    """Use UTF-8 output so status symbols never crash legacy consoles."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            encoding = (getattr(stream, "encoding", "") or "").lower()
+            if encoding.replace("-", "") != "utf8":
+                stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def safe_download_name(url):
     """Derive a safe local filename from a URL."""
     parsed = urllib.parse.urlparse(url)
@@ -616,6 +627,9 @@ class Extractor:
     # --- download ---------------------------------------------------------
     def download_url(self, url):
         self.info(f"Downloading {url}")
+        scheme = urllib.parse.urlparse(url).scheme.lower()
+        if scheme not in ('http', 'https', 'ftp'):
+            raise so.UnsupportedFormat(f"unsupported URL scheme: {scheme}")
         filename = safe_download_name(url)
         tmpdir = tempfile.mkdtemp(prefix='extract_')
         dest = os.path.join(tmpdir, filename)
@@ -624,7 +638,8 @@ class Extractor:
             request = urllib.request.Request(
                 url, headers={'User-Agent': f'extract/{VERSION}'})
             with Spinner(f"Downloading {filename}"):
-                with urllib.request.urlopen(request, timeout=60) as response:
+                # The URL scheme is restricted to http/https/ftp above.
+                with urllib.request.urlopen(request, timeout=60) as response:  # nosec B310
                     length = response.headers.get('Content-Length')
                     if limit and length:
                         try:
@@ -1772,6 +1787,7 @@ def build_limits(args):
 
 
 def main(argv=None):
+    configure_stdio()
     parser = argparse.ArgumentParser(
         prog='extract',
         description=f'{Colors.BOLD}extract{Colors.RESET} {VERSION} - '

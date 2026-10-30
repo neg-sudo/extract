@@ -215,6 +215,14 @@ class CLITests(unittest.TestCase):
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertEqual(files_under(out), ["src/z.txt"])
 
+    def test_non_utf8_console_output(self):
+        archive = make_zip(self.base / "a.zip", {"a.txt": "utf8"})
+        out = self.base / "out"
+        r = run(["-C", out, "-f", archive], home=self.home,
+                extra_env={"PYTHONIOENCODING": "ascii"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((out / "a.txt").read_text(), "utf8")
+
     def test_environment_limits(self):
         archive = make_zip(self.base / "a.zip", {"a.txt": "a", "b.txt": "b"})
         r = run(["-C", self.base / "out", "-f", archive], home=self.home,
