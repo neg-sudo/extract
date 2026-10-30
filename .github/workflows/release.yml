@@ -45,7 +45,7 @@ jobs:
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item dist/extract.exe "out/extract-${{ matrix.name }}.exe"
           Compress-Archive -Path "out/extract-${{ matrix.name }}.exe" -DestinationPath "out/extract-${{ matrix.name }}.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: out/*.zip
@@ -63,7 +63,7 @@ jobs:
           mkdir -p out
           python -m zipapp lib -m "extract:main" --compress -p "/usr/bin/env python3" -o out/extract.pyz
           chmod +x out/extract.pyz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: zipapp
           path: out/extract.pyz
