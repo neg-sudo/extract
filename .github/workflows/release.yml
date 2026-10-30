@@ -13,13 +13,14 @@ jobs:
   binaries:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           - { os: ubuntu-latest,   name: linux-amd64,   py: "3.12" }
           - { os: ubuntu-24.04-arm, name: linux-arm64,  py: "3.12" }
-          - { os: macos-13,        name: darwin-amd64,  py: "3.12" }
+          - { os: macos-15-intel,  name: darwin-amd64,  py: "3.12" }
           - { os: macos-14,        name: darwin-arm64,  py: "3.12" }
           - { os: windows-latest,  name: windows-amd64, py: "3.12" }
           - { os: windows-11-arm,  name: windows-arm64, py: "3.12" }
@@ -52,6 +53,7 @@ jobs:
 
   zipapp:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -71,6 +73,7 @@ jobs:
   release:
     needs: [binaries, zipapp]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
